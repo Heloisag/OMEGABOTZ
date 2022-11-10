@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 //Servo Libraries
 #include <ESP32Servo.h>
 #include <analogWrite.h>
