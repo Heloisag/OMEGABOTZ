@@ -1,3 +1,4 @@
+//includes
 #include <Arduino.h>
 
 //Servo Libraries
@@ -11,39 +12,29 @@
 #include <PS4Controller.h>
 #include <ps4_int.h>
 
+//IR Remote
+#include <IRremote.h>
+
+//Edge Sensors Pins and Variables
+#define leftSensorPin 34
+#define rightSensorPin 35
+//Presence Sensor Pins and Variables
+#define rightInfSensor 18//17
+#define middleInfSensor 5//18
+#define leftInfSensor 4 //23
+//Define Motors Pins and Instances
+#define leftMotorPin 26
+#define rightMotorPin 27
+//IR Remote library and variables
+#define irReceiverPin 23
+IRrecv irrecv(irReceiverPin);
+decode_results results;
+
 //Robot states of operation
 enum robotStates {
   LOCKED, AUTO, MANUAL, STTOPED
 };
 robotStates robotState = LOCKED;
-bool right = true;
-bool tiebreaker = false; // Tiebreaker - Desempate
-
-bool optionPressed = false;
-
-//IR Remote library and variables
-#include <IRremote.h>
-#define irReceiverPin 23
-IRrecv irrecv(irReceiverPin);
-decode_results results;
-
-//Edge Sensors Pins and Variables
-#define leftSensorPin 34
-#define rightSensorPin 35
-
-int leftSensorRef = 0;
-int rightSensorRef = 0;
-int rightSensorTolerance = 500;
-int leftSensorTolerance = 500;
-bool rightReading = true;
-int rightSensor = 35;
-int leftSensor = 34;
-
-//Presence Sensor Pins and Variables
-
-#define rightInfSensor 18//17
-#define middleInfSensor 5//18
-#define leftInfSensor 4 //23
 
 //Auto mode states of operation
 enum autoStates {
@@ -56,14 +47,20 @@ enum tatics {
 };
 tatics tatic = RADAR; //retirei esta linha no codigo novo
 
+bool right = true;
+bool tiebreaker = false; // Tiebreaker - Desempate
+bool optionPressed = false;
+int leftSensorRef = 0;
+int rightSensorRef = 0;
+int rightSensorTolerance = 500;
+int leftSensorTolerance = 500;
+bool rightReading = true;
+int rightSensor = 35;
+int leftSensor = 34;
 //PS4 LED status variables
 unsigned long blinkTimer;
 bool ledOn = true;
 int ledIntensity;
-
-//Define Motors Pins and Instances
-#define leftMotorPin 26
-#define rightMotorPin 27
 
 Servo LeftMotor;
 Servo RightMotor;
