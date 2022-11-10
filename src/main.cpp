@@ -17,7 +17,7 @@ enum robotStates {
 };
 robotStates robotState = LOCKED;
 bool right = true;
-bool desempate = false;
+bool tiebreaker = false; // Tiebreaker - Desempate
 
 bool optionPressed = false;
 
@@ -65,8 +65,8 @@ int ledIntensity;
 #define leftMotorPin 26
 #define rightMotorPin 27
 
-Servo MotorEsquerdo;
-Servo MotorDireito;
+Servo LeftMotor;
+Servo RightMotor;
 
 void setup() {
   // put your setup code here, to run once:
@@ -89,10 +89,10 @@ void setup() {
   PS4.setLed(100, 0, 0);
   PS4.sendToController();
 
-  MotorEsquerdo.attach(leftMotorPin);
-  MotorDireito.attach(rightMotorPin);
-  MotorEsquerdo.write(90); 
-  MotorDireito.write(90);
+  LeftMotor.attach(leftMotorPin);
+  RightMotor.attach(rightMotorPin);
+  LeftMotor.write(90); 
+  RightMotor.write(90);
   
   Serial.println("Ready and LOCKED");
 }
@@ -104,8 +104,8 @@ void loop() {
   if (PS4.isConnected()) {
     Status_Verify();
   } else {
-    MotorEsquerdo.write(90);
-    MotorDireito.write(90);
+    LeftMotor.write(90);
+    RightMotor.write(90);
   }
 }
 
@@ -122,7 +122,7 @@ void sensorTest() {
   }
 
 }
-//Mudan~ca de status do robo a partir do controle de ps4 e mudan~cas de LED
+//Mudança de status do robo a partir do controle de ps4 e mudanças de LED
 void Status_Verify() {
   if (PS4.Options()) {
     if (!optionPressed) {
@@ -131,16 +131,16 @@ void Status_Verify() {
         robotState = AUTO;
         PS4.setLed(0, 100, 0);
         PS4.sendToController();
-        MotorEsquerdo.write(90);
-        MotorDireito.write(90);
+        LeftMotor.write(90);
+        RightMotor.write(90);
         Serial.println("AUTO");
 
       } else if (robotState == AUTO) {
         robotState = MANUAL;
         PS4.setLed(0, 0, 100);
         PS4.sendToController();
-        MotorEsquerdo.write(90);
-        MotorDireito.write(90);
+        LeftMotor.write(90);
+        RightMotor.write(90);
         autoState = STOPPED;
         Serial.println("MANUAL");
 
@@ -149,8 +149,8 @@ void Status_Verify() {
         autoState = STOPPED;
         PS4.setLed(100, 0, 0);
         PS4.sendToController();
-        MotorEsquerdo.write(90);
-        MotorDireito.write(90);
+        LeftMotor.write(90);
+        RightMotor.write(90);
         Serial.println("LOCKED");
       }
     }
@@ -166,8 +166,8 @@ void Status_Verify() {
 }
 
 void MotorWrite(int ppmDireito, int ppmEsquerdo) {
-  MotorDireito.write(ppmDireito);
-  MotorEsquerdo.write(ppmEsquerdo);
+  RightMotor.write(ppmDireito);
+  LeftMotor.write(ppmEsquerdo);
 }
 
 void IRRead() {
@@ -210,7 +210,7 @@ void Radar() {
   //Serial.println("StarStart");
 
   //Logica para girar o robo no inicio da rodada de desempate
-  if (!desempate) {
+  if (!tiebreaker) {
     unsigned int timerStart = millis() + 300;
     while (timerStart > millis()) {
       MotorWrite(120, 80);
@@ -245,7 +245,7 @@ void Radar() {
 
 void Fradar() {
   //Serial.println("StarStart");
-  if (!desempate) {
+  if (!tiebreaker) {
     unsigned int timerStart = millis() + 300;
     while (timerStart > millis()) {
       MotorWrite(120, 80);
@@ -276,7 +276,7 @@ void Fradar() {
   }
 }//Fim void radar
   
-}
+
 
 void Auto() {
   IRRead();
@@ -312,12 +312,12 @@ void Auto() {
   //Seta para cima do controle desativa o modo de desempate
   if (PS4.Up()) {
     Serial.println("Up");
-    desempate = false;
+    tiebreaker = false;
   }
   //Seta para baixo do controle ativa o modo de desempate - O ROBO DEVE INICIAR A PARTIDA DE COSTAS
   if (PS4.Down()) {
     Serial.println("Down");
-    desempate = true;
+    tiebreaker = true;
   }
 
   //Estado do controle - Preparado para a luta ou nÃ£o
