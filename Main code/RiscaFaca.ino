@@ -1,6 +1,3 @@
-// Code made by Nick
-// Contact: nicolas_castrosilva@outlook.com
-
 //Servo Libraries
 #include <ESP32Servo.h>
 #include <analogWrite.h>
@@ -94,11 +91,6 @@ void setup() {
   MotorDireito.attach(rightMotorPin);
   MotorEsquerdo.write(90); 
   MotorDireito.write(90);
-
-//vou mudar o q esta entre os comentarios
-//attachInterrupt(leftSensorPin,desvio_e,RISING);
-//attachInterrupt(rightSensorPin,desvio_d,RISING);
-//cria a função de interrupção do sistema
   
   Serial.println("Ready and LOCKED");
 }
@@ -128,7 +120,7 @@ void sensorTest() {
   }
 
 }
-
+//Mudan~ca de status do robo a partir do controle de ps4 e mudan~cas de LED
 void Status_Verify() {
   if (PS4.Options()) {
     if (!optionPressed) {
@@ -176,62 +168,194 @@ void MotorWrite(int ppmDireito, int ppmEsquerdo) {
   MotorEsquerdo.write(ppmEsquerdo);
 }
 
+void IRRead() {
+  String value;
+  if (irrecv.decode(&results)) {
+    value = String(results.value, HEX);
+    Serial.println(value);
+    irrecv.resume();
+  }
+  
+  if (value == "10") {
+    if (autoState == STOPPED) {
+      //Serial.println("ReadyToGo");
+      autoState = READY;
+      MotorWrite(90, 90);
+      CalibrateSensors();
+    }
+  } else if (value == "810") {
+    if (autoState == READY) {
+      autoState = RUNNING;
+      PS4.setLed(0, 100, 0);
+      PS4.sendToController();
+      //Serial.println("LET'S GO!!!");
+    }
+  } else if ( value == "410") {
+    if (autoState == RUNNING || autoState == READY) {
+      //Serial.println("STOP");
+      autoState = STOPPED;
+      MotorWrite(90, 90);
+    }
+  }
+}
 
-//    // Below has all accessible outputs from the controller
-//    if (PS4.isConnected()) {
-//      if (PS4.Right()) Serial.println("Right Button");
-//      if (PS4.Down()) Serial.println("Down Button");
-//      if (PS4.Up()) Serial.println("Up Button");
-//      if (PS4.Left()) Serial.println("Left Button");
-//
-//      if (PS4.Square()) Serial.println("Square Button");
-//      if (PS4.Cross()) Serial.println("Cross Button");
-//      if (PS4.Circle()) Serial.println("Circle Button");
-//      if (PS4.Triangle()) Serial.println("Triangle Button");
-//
-//      if (PS4.UpRight()) Serial.println("Up Right");
-//      if (PS4.DownRight()) Serial.println("Down Right");
-//      if (PS4.UpLeft()) Serial.println("Up Left");
-//      if (PS4.DownLeft()) Serial.println("Down Left");
-//
-//      if (PS4.L1()) Serial.println("L1 Button");
-//      if (PS4.R1()) Serial.println("R1 Button");
-//
-//      if (PS4.Share()) Serial.println("Share Button");
-//      if (PS4.Options()) Serial.println("Options Button");
-//      if (PS4.L3()) Serial.println("L3 Button");
-//      if (PS4.R3()) Serial.println("R3 Button");
-//
-//      if (PS4.PSButton()) Serial.println("PS Button");
-//      if (PS4.Touchpad()) Serial.println("Touch Pad Button");
-//
-//      if (PS4.L2()) {
-//        Serial.printf("L2 button at %d\n", PS4.L2Value());
-//      }
-//      if (PS4.R2()) {
-//        Serial.printf("R2 button at %d\n", PS4.R2Value());
-//      }
+void Star() 
+{
+  //triangulo
+}
 
-//    if (PS4.LStickX()) {
-//      Serial.printf("Left Stick x at %d\n", PS4.LStickX());
-//    }
-//    if (PS4.LStickY()) {
-//      Serial.printf("Left Stick y at %d\n", PS4.LStickY());
-//    }
-//    if (PS4.RStickX()) {
-//      Serial.printf("Right Stick x at %d\n", PS4.RStickX());
-//    }
-//    if (PS4.RStickY()) {
-//      Serial.printf("Right Stick y at %d\n", PS4.RStickY());
-//    }
-//
-//    if (PS4.Charging()) Serial.println("The controller is charging");
-//    if (PS4.Audio()) Serial.println("The controller has headphones attached");
-//    if (PS4.Mic()) Serial.println("The controller has a mic attached");
-//
-//    Serial.printf("Battery Level : %d\n", PS4.Battery());
-//
-//    Serial.println();
-//    // This delay is to make the output more human readable
-//    // Remove it when you're not trying to see the output
-//    delay(1000);
+void Radar() {
+  //Serial.println("StarStart");
+
+  //Logica para girar o robo no inicio da rodada de desempate
+  if (!desempate) {
+    unsigned int timerStart = millis() + 300;
+    while (timerStart > millis()) {
+      MotorWrite(120, 80);
+    }
+  }
+
+ 
+  while (autoState == RUNNING) {
+    //Sensor do meio nÃ£o esta lendo e o robo vai girar para o sentido escolhido no inicio
+    while (!digitalRead(middleInfSensor) && autoState == RUNNING) {
+      //Serial.println("NotFind");
+      IRRead();
+      //Status_Verify();
+      if (right) {
+        MotorWrite(110, 80);
+      } else {
+        MotorWrite(80, 110);
+      }
+    }
+
+    //Sensor do meio esta lendo e o robo ira seguir reto
+    right = !right;
+    while (digitalRead(middleInfSensor) && autoState == RUNNING) {
+      //Serial.println("Find");
+      IRRead();
+      //Status_Verify();
+      //Valores da velocidade de cada motor - regular caso o robo nÃ£o ande reto
+      MotorWrite(150, 150);
+    }
+  }
+}
+
+void Fradar() {
+  //Serial.println("StarStart");
+  if (!desempate) {
+    unsigned int timerStart = millis() + 300;
+    while (timerStart > millis()) {
+      MotorWrite(120, 80);
+    }
+  }
+
+  MotorWrite(100,100);
+  delay(50);
+ 
+  while (autoState == RUNNING) {
+    while (!digitalRead(middleInfSensor) && autoState == RUNNING) {
+      //Serial.println("NotFind");
+      IRRead();
+      //Status_Verify();
+      if (right) {
+        MotorWrite(80, 110);
+      } else {
+        MotorWrite(110, 80);
+      }
+    }
+    right = !right;
+    while (digitalRead(middleInfSensor) && autoState == RUNNING) {
+      //Serial.println("Find");
+      IRRead();
+      //Status_Verify();
+      MotorWrite(150, 150);
+    }
+  }
+}//Fim void radar
+  
+}
+
+void Auto() {
+  IRRead();
+
+  //Bolinha do controle inicia o modo radar - MODO PADRÃƒO
+  if (PS4.Circle()) {
+    Serial.println("RadarMode");
+    tatic = RADAR;
+  }
+
+  //Quadrado do controle inicia o modo de leitura enquanto vai para frente
+  if (PS4.Square()) {
+    Serial.println("ForwardRadarMode");
+    tatic = FRADAR;
+  }
+  
+  //Triangulo do controle inicia o modo de leitura estrela - NÃƒO ESTA FUNCIONANDO
+  if (PS4.Triangle()) {
+    Serial.println("StarMode");
+    tatic = STAR;
+  }
+
+  //Seta para direita do controle da a preferencia de girar para a direita em qualquer modo
+  if (PS4.Right()) {
+    Serial.println("Right");
+    right = true;
+  }
+  //Seta para esquerda do controle da a preferencia de girar para a esquerda em qualquer modo
+  if (PS4.Left()) {
+    Serial.println("Left");
+    right = false;
+  }
+  //Seta para cima do controle desativa o modo de desempate
+  if (PS4.Up()) {
+    Serial.println("Up");
+    desempate = false;
+  }
+  //Seta para baixo do controle ativa o modo de desempate - O ROBO DEVE INICIAR A PARTIDA DE COSTAS
+  if (PS4.Down()) {
+    Serial.println("Down");
+    desempate = true;
+  }
+
+  //Estado do controle - Preparado para a luta ou nÃ£o
+  if (autoState == RUNNING) {
+    if (tatic == STAR) {
+      Star();
+    } else if (tatic == RADAR) {
+      Radar();
+    }
+  } else if (autoState == READY) {
+    MotorWrite(90, 90);
+    if (blinkTimer < millis()) {
+      if (ledOn) {
+        PS4.setLed(0, 0, 0);
+        PS4.sendToController();
+      } else {
+        PS4.setLed(0, 100, 0);
+        PS4.sendToController();
+      }
+      ledOn = !ledOn;
+      blinkTimer = millis() + 200;
+    }
+  } else if (autoState == STOPPED) {
+    MotorWrite(90, 90);
+    if (blinkTimer < millis()) {
+      if (ledOn) {
+        PS4.setLed(0, ledIntensity++, 0);
+        PS4.sendToController();
+      } else {
+        PS4.setLed(0, ledIntensity--, 0);
+        PS4.sendToController();
+      }
+      if (ledIntensity == 0 || ledIntensity == 100) {
+        ledOn = !ledOn;
+      }
+      blinkTimer = millis() + 10;
+    }
+  }
+}
+void CalibrateSensors() {
+  leftSensorRef = analogRead(leftSensorPin) - leftSensorTolerance;
+  rightSensorRef = analogRead(rightSensorPin) - rightSensorTolerance;
+}
