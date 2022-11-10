@@ -1,4 +1,4 @@
-//includes
+//Includes - Bibliotecas
 #include <Arduino.h>
 
 //Servo Libraries
@@ -15,24 +15,24 @@
 //IR Remote
 #include <IRremote.h>
 
-//Edge Sensors Pins and Variables
+//Pinos e variaveis dos sensores de borda
 #define leftSensorPin 34
 #define rightSensorPin 35
-//Presence Sensor Pins and Variables
+//Pinos e variaveis dos sensores de presença
 #define rightInfSensor 18//17
 #define middleInfSensor 5//18
 #define leftInfSensor 4 //23
-//Define Motors Pins and Instances
+//Definir pinos e instâncias de motores
 #define leftMotorPin 26
 #define rightMotorPin 27
-//IR Remote library and variables
+//Bibliotecas e variaveis do IR REMOTE
 #define irReceiverPin 23
 IRrecv irrecv(irReceiverPin);
 decode_results results;
 
 //Robot states of operation
 enum robotStates {
-  LOCKED, AUTO, MANUAL, STTOPED
+  LOCKED, AUTO, MANUAL, STOPPED
 };
 robotStates robotState = LOCKED;
 
@@ -42,13 +42,9 @@ enum autoStates {
 };
 autoStates autoState = STOPPED;
 
-enum tatics {
-  STAR, RADAR
-};
-tatics tatic = RADAR; //retirei esta linha no codigo novo
-
 bool right = true;
-bool tiebreaker = false; // Tiebreaker - Desempate
+// Tiebreaker - Desempate
+bool tiebreaker = false;                    
 bool optionPressed = false;
 int leftSensorRef = 0;
 int rightSensorRef = 0;
@@ -57,7 +53,8 @@ int leftSensorTolerance = 500;
 bool rightReading = true;
 int rightSensor = 35;
 int leftSensor = 34;
-//PS4 LED status variables
+
+//Status das variaveis do led do controle de PS4
 unsigned long blinkTimer;
 bool ledOn = true;
 int ledIntensity;
@@ -69,9 +66,10 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
 
-  irrecv.enableIRIn(); //Enable IR Receiver
-
-  PS4.begin("8c:f1:12:a0:c4:84"); //Start Connection between ESP32 and PS4 Controller
+  irrecv.enableIRIn(); //Ativa o receptor IR
+  
+  
+  PS4.begin("8c:f1:12:a0:c4:84"); //Inicia a conexão entre o ESP32 e o controle de PS4
   //PS4.begin("60:5b:b4:56:c5:fa");
   //PS4.begin("a8:47:4a:ed:40:64");
   while (!PS4.isConnected()) {
@@ -95,8 +93,7 @@ void setup() {
 }
 
 void loop() {
-
-  //sensorTest();
+  //sensorTest(); //Esta linha é apenas para ralizar o teste dos sensores via terminal;
   // put your main code here, to run repeatedly:
   if (PS4.isConnected()) {
     Status_Verify();
@@ -106,6 +103,7 @@ void loop() {
   }
 }
 
+//Só funciona se a linha >95< não estiver comentada;
 void sensorTest() {
   //Serial.println("TestintSensors");
   if (digitalRead(leftInfSensor)) {
@@ -119,7 +117,7 @@ void sensorTest() {
   }
 
 }
-//Mudança de status do robo a partir do controle de ps4 e mudanças de LED
+//Mudança de status do robo a partir do controle de PS4 e mudanças de LED
 void Status_Verify() {
   if (PS4.Options()) {
     if (!optionPressed) {
@@ -162,9 +160,10 @@ void Status_Verify() {
   }
 }
 
-void MotorWrite(int ppmDireito, int ppmEsquerdo) {
-  RightMotor.write(ppmDireito);
-  LeftMotor.write(ppmEsquerdo);
+//Controla a velocidade do motor (MotorWrite)
+void MotorWrite(int pwmRight, int pwmLeft) {
+  RightMotor.write(pwmRight);
+  LeftMotor.write(pwmLeft);
 }
 
 void IRRead() {
@@ -207,16 +206,15 @@ void Radar() {
   //Serial.println("StarStart");
 
   //Logica para girar o robo no inicio da rodada de desempate
-  if (!tiebreaker) {
+  if (tiebreaker) {
     unsigned int timerStart = millis() + 300;
     while (timerStart > millis()) {
       MotorWrite(120, 80);
     }
   }
 
- 
-  while (autoState == RUNNING) {
-    //Sensor do meio nÃ£o esta lendo e o robo vai girar para o sentido escolhido no inicio
+   while (autoState == RUNNING) {
+    //Sensor do meio não esta lendo e o robo vai girar para o sentido escolhido no inicio
     while (!digitalRead(middleInfSensor) && autoState == RUNNING) {
       //Serial.println("NotFind");
       IRRead();
@@ -241,8 +239,8 @@ void Radar() {
 }
 
 void Fradar() {
-  //Serial.println("StarStart");
-  if (!tiebreaker) {
+  //Serial.println("StarStart");   //Só tirar os comentarios para testar via terminal;
+  if (tiebreaker) {
     unsigned int timerStart = millis() + 300;
     while (timerStart > millis()) {
       MotorWrite(120, 80);
@@ -268,7 +266,7 @@ void Fradar() {
       //Serial.println("Find");
       IRRead();
       //Status_Verify();
-      MotorWrite(150, 150);
+      MotorWrite(150, 150); //<<<--- Regular aqui caso o motor esteja descalibrado/pendendo pros lados
     }
   }
 }//Fim void radar
@@ -283,19 +281,16 @@ void Auto() {
     Serial.println("RadarMode");
     tatic = RADAR;
   }
-
   //Quadrado do controle inicia o modo de leitura enquanto vai para frente
   if (PS4.Square()) {
     Serial.println("ForwardRadarMode");
     tatic = FRADAR;
   }
-  
-  //Triangulo do controle inicia o modo de leitura estrela - NÃƒO ESTA FUNCIONANDO
+  //Triangulo do controle inicia o modo de leitura estrela - NÃO ESTA FUNCIONANDO
   if (PS4.Triangle()) {
     Serial.println("StarMode");
     tatic = STAR;
   }
-
   //Seta para direita do controle da a preferencia de girar para a direita em qualquer modo
   if (PS4.Right()) {
     Serial.println("Right");
@@ -316,14 +311,16 @@ void Auto() {
     Serial.println("Down");
     tiebreaker = true;
   }
-
-  //Estado do controle - Preparado para a luta ou nÃ£o
+  //Estado do controle - Preparado para a luta ou não
   if (autoState == RUNNING) {
     if (tatic == STAR) {
       Star();
     } else if (tatic == RADAR) {
       Radar();
+    } else if (tatic == FRADAR) {
+      Fradar();
     }
+
   } else if (autoState == READY) {
     MotorWrite(90, 90);
     if (blinkTimer < millis()) {
@@ -337,6 +334,7 @@ void Auto() {
       ledOn = !ledOn;
       blinkTimer = millis() + 200;
     }
+
   } else if (autoState == STOPPED) {
     MotorWrite(90, 90);
     if (blinkTimer < millis()) {
